@@ -1,0 +1,138 @@
+# 開発基礎ルール — Claude Code 共通環境
+
+---
+
+## 🔴 必須ワークフロー（Boris Tane式 — 全タスクに適用）
+
+**鉄則：計画が固まるまで絶対にコードを書かない。**
+
+### フロー
+Research → Plan → Annotate（1〜6回）→ Todo → Implement
+
+### Phase 1: Research
+- 対象コードを深く読み込む（"deeply", "in great detail" — 表面的な読み方は不可）
+- 学んだことを `tasks/[タスク名]/research.md` に書き出す
+- **実装はまだしない**
+
+### Phase 2: Plan
+- research.mdを踏まえて `tasks/[タスク名]/plan.md` に詳細計画を書く
+- 変更ファイル・コードスニペット・トレードオフを含める
+- **実装はまだしない**
+
+### Phase 3: Annotate（繰り返し）
+- レビュアーがplan.mdに直接インライン注釈を書いて返す
+- 「注釈に対応してplan.mdを更新してください。実装はまだしないでください。」
+- 満足するまで繰り返す（1〜6回）
+
+### Phase 4: Todo List
+- plan.mdに詳細なTodoリストを追加する
+- **実装はまだしない**
+
+### Phase 5: Implement（このプロンプトをそのまま使う）
+```
+implement it all. when you're done with a task or phase, mark it as completed in plan.md. do not stop until all tasks and phases are completed. do not add unnecessary comments or jsdocs. continuously run typecheck to make sure you're not introducing new issues.
+```
+
+### 実装中の修正ルール
+- 方向がズレたらrevertして再スコープ：「reverted everything. now all I want is X — nothing else.」
+- 修正指示は短文でいい（計画が正しければ一言で通じる）
+- 既存コードを参照させる：「この画面はusersテーブルと同じにして」
+
+---
+
+## Workflow Orchestration
+
+### 1. Plan Node Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately — don't keep pushing
+- Use plan mode for verification steps, not just building
+
+### 2. Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- One task per subagent for focused execution
+
+### 3. Self-Improvement Loop
+- After ANY correction from the user: update `tasks/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Review lessons at session start for relevant project
+
+### 4. Verification Before Done
+- Never mark a task complete without proving it works
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+- **実装後レビュー（必須）**:
+  1. **コードレビュー**: 全変更ファイルをsubagentでレビュー（型エラー、レース条件、エッジケース、セキュリティ）
+  2. **実機テスト**: ブラウザでユーザーとして実際に操作して動作確認
+
+### 5. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- Skip this for simple, obvious fixes — don't over-engineer
+
+### 6. Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests — then resolve them
+
+---
+
+## Task Management
+
+1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
+2. **Verify Plan**: Check in before starting implementation
+3. **Track Progress**: Mark items complete as you go
+4. **Explain Changes**: High-level summary at each step
+5. **Document Results**: Add review section to `tasks/todo.md`
+6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+
+---
+
+## Core Principles
+
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+
+---
+
+## 🎯 プロンプト逆質問モード
+
+**発動条件：** 「プロンプト考えて」「プロンプト作って」「投げるやつ書いて」と言われた時
+
+**ルール：完了条件が全部「数値・事実」で書けるまで逆質問し続ける。**
+
+### 逆質問の順番
+
+1. **対象** — どのファイル/機能を変更する？
+2. **やらないこと** — 絶対に触らないものは？
+3. **完了の定義** — 何ができたら完成？どうやって確認する？
+4. **確認環境** — どのデバイス・ブラウザで確認する？
+5. **制約** — 使っていいフレームワーク・ライブラリは？
+
+全部答えが出たら、やること / やらないこと / 完了条件（数値・事実）/ 確認手順 の4セクションで生成。
+
+---
+
+## 🔁 自律ループ（Ralphパターン）
+
+大量タスク（10個以上）や全自動でやらせたい時に使う:
+- 各ストーリー完了後に typecheck + tests を自動実行
+- passした場合のみcommit
+- progress.txtに学習を記録して次のイテレーションに引き継ぐ
+
+---
+
+## 品質ルール
+
+- 実装前に必ず型チェックを通す
+- 完了条件を満たすまで「完成」と言わない
+- ビジュアル変更はモバイルビューで確認
+
+---
+
+## 🧠 AI出力改善の鉄則
+
+**AIの出力が微妙な時、「ルールを足して制御する」は間違い。**
+
+- ルールを増やす → テンプレ化 → 不自然になる → 逆効果
+- **正解: 賢いモデルに自由に判断させる**
+- ルールは物理制約（文字数、フォーマット等）だけ。判断はモデルの知性に委ねる
